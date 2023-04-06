@@ -66,7 +66,7 @@ if __name__ == "__main__":
             if os.path.isfile(file):
                 mirror_zinc_file(file, [1, 0, 0, 0])
 
-    example_7 = True
+    example_7 = False
     if example_7:
         zinc_files_directory = r'C:\Users\egha355\Desktop\work_related\human_vasculature\cmgui\create group for all'
         group_all_elements_nodes_of_zinc(zinc_files_directory)
@@ -77,5 +77,90 @@ if __name__ == "__main__":
         output_vessel_anatomical_properties(
             r'C:\Users\egha355\Desktop\work_related\human_vasculature\cmgui\finbar_vessels\arteries.exf')
 
+    example_9 = True
+    if example_9:
+        zfile = r'C:\Users\egha355\Desktop\work_related\human_vasculature\cmgui\finbar_vessels\arteries.exf'
+        cfile = r'C:\Users\egha355\Desktop\work_related\human_vasculature\cmgui\finbar_vessels\arteries_v2_map_names.csv'
+        get_xi_location_of_vessel(zfile, cfile)
+
+
+    # with open(input, 'r') as f, open(output, 'w') as g:
+    #     for line in f:
+    #         if 'name,length' in line:
+    #             g.write(line)
+    #             continue
+    #         line = line.split(',')
+    #         outputs = line[6].strip().split(' ')
+    #         assert len(line[6].split(' ')) == int(line[7].strip())
+    #         if len(outputs) > 1:
+    #             cn = 1
+    #             # get base name and suffix
+    #             if '_L' in line[0]:
+    #                 base_name = line[0].split('_L')[0]
+    #                 suffix = '_L'
+    #             elif '_R' in line[0]:
+    #                 base_name = line[0].split('_R')[0]
+    #                 suffix = '_R'
+    #             else:
+    #                 base_name = line[0]
+    #                 suffix = ''
+    #             for o in outputs:
+    #                 name = ''.join([base_name, '_', str(cn), suffix])
+    #                 out = ''.join([base_name, '_', str(cn + 1), suffix])
+    #                 out = ' '.join([out, o])
+    #                 if cn == 1:
+    #                     inpt = line[5]
+    #                 else:
+    #                     inpt = ''.join([base_name, '_', str(cn-1), suffix])
+    #                 line[0], line[5], line[6] = name, inpt, out
+    #                 g.write(','.join(line))
+    #                 cn += 1
+    #
+    #             # last output
+    #             name = ''.join([base_name, '_', str(cn), suffix])
+    #             inpt = ''.join([base_name, '_', str(cn-1), suffix])
+    #             out = 'None'
+    #             line[0], line[5], line[6] = name, inpt, out
+    #             g.write(','.join(line))
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # outputs = {}
+    # with open(input, 'r') as f:
+    #     for line in f:
+    #         if 'boundary condition type' in line:
+    #             continue
+    #         line = line.split(',')
+    #         sp = line[5]
+    #         if sp not in outputs:
+    #             outputs[sp] = [line[0]]
+    #         else:
+    #             outputs[sp].append(line[0])
+    #
+    # with open(input, 'r') as f, open(output, 'w') as g:
+    #     for line in f:
+    #         if 'boundary condition type' in line:
+    #             continue
+    #         line = line.split(',')
+    #         if line[0] in outputs:
+    #             g.write(' '.join(outputs[line[0]])+'\n')
+    #         else:
+    #             g.write('None'+'\n')
+
+
+    # with open(input, 'r') as f, open(output, 'w') as g:
+    #     for line in f:
+    #         sp = line.split(',')[6].split(' ')
+    #         g.write(str(len(sp))+'\n')
 
 

@@ -34,14 +34,14 @@ def mirror_zinc_file(zinc_file, plane):
 
     element_started = False
     counter = -100
-    define_started = False
+    # define_started = False
     with open(zinc_file, 'r') as f, open(output_zinc_mirrored, 'w') as g:
         for line in f:
-            if element_started or define_started:
+            if element_started:
                 g.write(line)
                 continue
-            if 'node2' in line:
-                define_started = True
+            # if 'node2' in line:
+            #     define_started = True
             if 'Node:' in line:
                 counter = 0
 
@@ -175,8 +175,8 @@ def get_vessel_lengths(field_module, groups):
         # find closest point to each end of the vessel and add it to reationships
         for name in groups:
             if name != group:
-                dist1 = find_closest_point_to_vessel(points[group][0], points[name])
-                dist2 = find_closest_point_to_vessel(points[group][-1], points[name])
+                dist1 = find_closest_point_to_vessel(points[group][0], points[name])[0]
+                dist2 = find_closest_point_to_vessel(points[group][-1], points[name])[0]
                 if dist1 <= min_dist1:
                     min_dist1 = dist1
                     name1 = name
@@ -204,7 +204,7 @@ def find_closest_point_to_vessel(point, points):
 
     tree = cKDTree(points)
     dist, idx = tree.query(point)
-    return dist
+    return dist, idx
 
 
 def _write_vessel_geometry(csv_file, groups, lengths, radius1, radius2, relationships, distances):
@@ -252,222 +252,198 @@ def output_vessel_anatomical_properties(scaffold_file):
         groups = get_vessel_group_names(field_module)
         groups = get_groups_with_one_element(groups)
         lengths, radius1, radius2, relationships, distances = get_vessel_lengths(field_module, groups)
-        _write_vessel_geometry(csv_file, groups, lengths, radius1, radius2,relationships, distances)
+        # _write_vessel_geometry(csv_file, groups, lengths, radius1, radius2,relationships, distances)
         a=1
 
 
-# def my_snake_game():
-#     import pygame
-#     import random
-#
-#     # Initialize Pygame
-#     pygame.init()
-#
-#     # Set up the game window
-#     window_width = 640
-#     window_height = 480
-#     window = pygame.display.set_mode((window_width, window_height))
-#     pygame.display.set_caption('Snake Game')
-#
-#     # Set up the game board
-#     board_width = 20
-#     board_height = 15
-#     board = [[0] * board_width for i in range(board_height)]
-#
-#     # Set up the snake
-#     snake = [(board_width // 2, board_height // 2)]
-#     snake_direction = 'right'
-#
-#     # Set up the food
-#     food = (random.randint(0, board_width - 1), random.randint(0, board_height - 1))
-#
-#     # Set up the game loop
-#     clock = pygame.time.Clock()
-#     game_over = False
-#
-#     while not game_over:
-#         # Handle events
-#         for event in pygame.event.get():
-#             if event.type == pygame.QUIT:
-#                 game_over = True
-#             elif event.type == pygame.KEYDOWN:
-#                 if event.key == pygame.K_LEFT and snake_direction != 'right':
-#                     snake_direction = 'left'
-#                 elif event.key == pygame.K_RIGHT and snake_direction != 'left':
-#                     snake_direction = 'right'
-#                 elif event.key == pygame.K_UP and snake_direction != 'down':
-#                     snake_direction = 'up'
-#                 elif event.key == pygame.K_DOWN and snake_direction != 'up':
-#                     snake_direction = 'down'
-#
-#         # Move the snake
-#         head_x, head_y = snake[0]
-#         if snake_direction == 'left':
-#             head_x -= 1
-#         elif snake_direction == 'right':
-#             head_x += 1
-#         elif snake_direction == 'up':
-#             head_y -= 1
-#         elif snake_direction == 'down':
-#             head_y += 1
-#         snake.insert(0, (head_x, head_y))
-#
-#         # Check for collision with the food
-#         if snake[0] == food:
-#             food = (random.randint(0, board_width - 1), random.randint(0, board_height - 1))
-#         else:
-#             snake.pop()
-#
-#         # Check for collision with the walls
-#         if snake[0][0] < 0 or snake[0][0] >= board_width or snake[0][1] < 0 or snake[0][1] >= board_height:
-#             game_over = True
-#
-#         # Clear the board
-#         for y in range(board_height):
-#             for x in range(board_width):
-#                 board[y][x] = 0
-#
-#         # Draw the snake
-#         for x, y in snake:
-#             board[y][x] = 1
-#
-#         # Draw the food
-#         board[food[1]][food[0]] = 2
-#
-#         # Draw the board
-#         for y in range(board_height):
-#             for x in range(board_width):
-#                 if board[y][x] == 0:
-#                     pygame.draw.rect(window, (255, 255, 255), (x * 32, y * 32, 32, 32))
-#                 elif board[y][x] == 1:
-#                     pygame.draw.rect(window, (0, 255, 0), (x * 32, y * 32, 32, 32))
-#                 elif board[y][x] == 2:
-#                     pygame.draw.rect(window, (255, 0, 0), (x * 32, y * 32, 32, 32))
-#
-#         # Update the screen
-#         pygame.display.update()
-#
-#         # Wait for the next frame
-#         clock.tick(10)
-#
-#     # Clean up
-#     pygame.quit()
-#
-#
-# def user_snake():
-#     import pygame
-#     import random
-#
-#     # Initialize Pygame
-#     pygame.init()
-#
-#     # Set the window size
-#     window_width = 500
-#     window_height = 500
-#     window = pygame.display.set_mode((window_width, window_height))
-#     pygame.display.set_caption("Snake Game")
-#
-#     # Set the colors
-#     white = (255, 255, 255)
-#     black = (0, 0, 0)
-#     red = (255, 0, 0)
-#
-#     # Set the font
-#     font = pygame.font.SysFont(None, 25)
-#
-#     # Set the clock
-#     clock = pygame.time.Clock()
-#
-#     # Set the block size
-#     block_size = 10
-#
-#     # Define the snake
-#     def snake(block_size, snake_list):
-#         for x in snake_list:
-#             pygame.draw.rect(window, black, [x[0], x[1], block_size, block_size])
-#
-#     # Define the message
-#     def message(msg, color):
-#         text = font.render(msg, True, color)
-#         window.blit(text, [window_width / 6, window_height / 3])
-#
-#     # Define the game loop
-#     def gameLoop():
-#         game_exit = False
-#         game_over = False
-#
-#         # Set the initial position of the snake
-#         lead_x = window_width / 2
-#         lead_y = window_height / 2
-#         lead_x_change = 0
-#         lead_y_change = 0
-#
-#         # Set the initial position of the food
-#         food_x = round(random.randrange(0, window_width - block_size) / 10.0) * 10.0
-#         food_y = round(random.randrange(0, window_height - block_size) / 10.0) * 10.0
-#
-#         # Set the initial length of the snake
-#         snake_list = []
-#         snake_length = 1
-#
-#         # Game loop
-#         while not game_exit:
-#
-#             # Game over loop
-#             while game_over == True:
-#                 window.fill(white)
-#                 message("Game over. Press Q to quit or C to play again.", red)
-#                 pygame.display.update()
-#
-#                 # Handle user input
-#                 for event in pygame.event.get():
-#                     if event.type == pygame.KEYDOWN:
-#                         if event.key == pygame.K_q:
-#                             game_exit = True
-#                             game_over = False
-#                         if event.key == pygame.K_c:
-#                             gameLoop()
-#
-#             # Handle user input
-#             for event in pygame.event.get():
-#                 if event.type == pygame.QUIT:
-#                     game_exit = True
-#                 if event.type == pygame.KEYDOWN:
-#                     if event.key == pygame.K_LEFT:
-#                         lead_x_change = -block_size
-#                         lead_y_change = 0
-#                     elif event.key == pygame.K_RIGHT:
-#                         lead_x_change = block_size
-#                         lead_y_change = 0
-#                     elif event.key == pygame.K_UP:
-#                         lead_y_change = -block_size
-#                         lead_x_change = 0
-#                     elif event.key == pygame.K_DOWN:
-#                         lead_y_change = block_size
-#                         lead_x_change = 0
-#
-#             # Check if the snake hits the wall
-#             if lead_x >= window_width or lead_x < 0 or lead_y >= window_height or lead_y < 0:
-#                 game_over = True
-#
-#             # Update the position of the snake
-#             lead_x += lead_x_change
-#             lead_y += lead_y_change
-#
-#             # Draw the background
-#             window.fill(white)
-#
-#             # Draw the food
-#             pygame.draw.rect(window, red, [food_x, food_y, block_size, block_size])
-#
-#             # Update the snake
-#             snake_head = []
-#             snake_head.append(lead_x)
-#             snake_head.append(lead_y)
-#             snake_list.append(snake_head)
-#             if len(snake_list) > snake_length:
-#                 del snake_list[0]
-#
-#             # Check if the snake hits itself
-#             for segment in snake_list[:-1]:
-#                 if segment == snake_head
+def get_xi_location_of_vessel(scaffold_file, csv_file):
+    """
+
+    :param scaffold_file:
+    :param csv_file:
+    :return:
+    """
+    output = os.path.join(os.path.dirname(scaffold_file), os.path.basename(scaffold_file) + 'output2')
+    context = Context('artery csv')
+    region = context.getDefaultRegion()
+
+    result = region.readFile(scaffold_file)
+
+    assert result == RESULT_OK, "Failed to load model file" + str(scaffold_file)
+    field_module = region.getFieldmodule()
+
+    with open(csv_file, 'r') as f:
+        lines = f.readlines()
+
+    new_to_old = {}
+    groups = []
+    data = {}
+    for line in lines:
+        if 'name,name' in line:
+            continue
+        line = line.split(',')
+        new_to_old[line[1]] = line[0]
+        groups.append(line[0])
+        data[line[0]] = line[1:]
+
+    parent = {}
+    # for line in lines:
+    #     p
+
+    # interpolate every 1mm along the parent vessel
+    cache = field_module.createFieldcache()
+    coordinates = field_module.findFieldByName('coordinates').castFiniteElement()
+    radius_field = field_module.findFieldByName('radius').castFiniteElement()
+    # Get element iterator
+    mesh = field_module.findMeshByDimension(1)
+
+    dxi = 1.0  # mm
+    elem_node_list_with_inverse_node_order = []
+    node_reverse_derivative_list = []
+    for group in groups:
+        if group == 'Ascending aorta':
+            continue
+        child_name = group
+        parent_name = new_to_old[data[group][5]]
+        group = '"'+group+'"'  # add quotes to match the group name
+        field_group = field_module.findFieldByName(group).castGroup()
+        element_group = field_group.getFieldElementGroup(mesh)
+        if element_group.isValid():
+            mesh_group = element_group.getMeshGroup()
+        else:
+            print('extractPathParametersFromRegion: missing group "' + group + '"')
+        elemiter = mesh_group.createElementiterator()
+        element = elemiter.next()
+
+        field_group2 = field_module.findFieldByName('"'+parent_name+'"').castGroup()
+        element_group2 = field_group2.getFieldElementGroup(mesh)
+        if element_group2.isValid():
+            mesh_group2 = element_group2.getMeshGroup()
+        else:
+            print('extractPathParametersFromRegion: missing group "' + parent_name + '"')
+        elemiter2 = mesh_group2.createElementiterator()
+        element2 = elemiter2.next()
+        while element.isValid():
+            xv = []
+            # for each element use Gaussian quadrature to calculate the arc length
+            eft = element.getElementfieldtemplate(coordinates, 3)
+            node1 = element.getNode(eft, 1)
+            node2 = element.getNode(eft, 2)
+            cache.setNode(node1)
+            result, r1 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
+            result, v1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            cache.setNode(node2)
+            result, r2 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
+            result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            chv1 = v1
+            chv2 = v2
+            ch1id = node1.getIdentifier()
+            ch2id = node2.getIdentifier()
+
+            # get node parameters of the parent vessel
+            xv = []
+            # for each element use Gaussian quadrature to calculate the arc length
+            eft = element2.getElementfieldtemplate(coordinates, 3)
+            node1 = element2.getNode(eft, 1)
+            node2 = element2.getNode(eft, 2)
+            cache.setNode(node1)
+            result, r1 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
+            result, v1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            cache.setNode(node2)
+            result, r2 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
+            result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            arcLength = getCubicHermiteArcLength(v1, d1, v2, d2)
+
+            # point cloud
+            for i in range(int(arcLength // dxi)):
+                xv.append(interpolateCubicHermite(v1, d1, v2, d2, i * dxi / arcLength))
+
+            dist1, idx1 = find_closest_point_to_vessel(chv1, xv)
+            dist2, idx2 = find_closest_point_to_vessel(chv2, xv)
+            if dist1 > dist2:
+                # print("dist1 > dist2")
+                node_reverse_derivative_list.append(ch1id)
+                node_reverse_derivative_list.append(ch2id)
+                elem_node_list_with_inverse_node_order.append([child_name, str(element.getIdentifier()), str(element2.getIdentifier())])
+                xi = idx2 * dxi / arcLength
+            else:
+                xi = idx1 * dxi / arcLength
+            # print(child_name, parent_name, xi, idx1, idx2, dist1, dist2)
+            # import matplotlib.pyplot as plt
+            # ax = plt.figure().add_subplot(projection='3d')
+            # xv=np.array(xv)
+            # ax.plot(xv[:, 0], xv[:, 1], xv[:, 2], 'o')
+            # plt.show()
+            # points[group] = xv
+
+            element = elemiter.next()
+            if element.isValid():
+                print('Warning: More than one element per group')
+    # for c in elem_node_list_with_inverse_node_order:
+    #     print(f'{c[0]}, {c[1]}, {c[2]}')
+    elem_list = [int(c[1]) for c in elem_node_list_with_inverse_node_order]
+    node_reverse_derivative_list.sort()
+    elem_list.sort()
+    output_correct_order_of_nodes(scaffold_file, elem_list, node_reverse_derivative_list)
+
+
+def output_correct_order_of_nodes(scaffold_file, elem_list, node_reverse_derivative_list):
+    """
+    :param scaffold_file: zinc scaffold file. arteries.exf
+    :param elem_list:
+    :param node_reverse_derivative_list:
+    :return:
+    """
+    elems_started = False
+    nodes_started = False
+    counter = -100
+    counter_node = 100
+    with open(scaffold_file, 'r') as f, open(scaffold_file.replace('.exf', '_new.exf'), 'w') as g:
+        for line in f:
+            if line.startswith('Element template: element1'):
+                elems_started = True
+            elif line.startswith('Group name:'):
+                elems_started = False
+            if line.startswith('Node template: node1'):
+                nodes_started = True
+            elif line.startswith('!#mesh'):
+                nodes_started = False
+            if nodes_started:
+                if node_reverse_derivative_list:
+                    if 'Node: ' + str(node_reverse_derivative_list[0]) + '\n' in line:
+                        counter_node = 0
+                    if 0 < counter_node < 4:
+                        line = line.strip().split()
+                        g.write(f' {line[0]} {-float(line[1])}\n')
+                        if counter_node == 3:
+                            node_reverse_derivative_list.pop(0)
+                    else:
+                        g.write(line)
+                    counter_node += 1
+                else:
+                    g.write(line)
+            elif elems_started:
+                if elem_list:
+                    if 'Element: ' + str(elem_list[0]) + '\n' in line:
+                        counter = 0
+                    if counter == 2:
+                        line = line.strip().split(' ')
+                        g.write(f' {line[1]} {line[0]}\n')
+                        elem_list.pop(0)
+                    else:
+                        g.write(line)
+                    counter += 1
+                else:
+                    g.write(line)
+            else:
+                g.write(line)
+
+
+    # get the first node of the vessel
+    # get xi location of the first node of the vessel
+    # find the
+
