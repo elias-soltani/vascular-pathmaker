@@ -79,10 +79,12 @@ if __name__ == "__main__":
 
     example_9 = True
     if example_9:
-        zfile = r'C:\Users\egha355\Desktop\work_related\human_vasculature\cmgui\finbar_vessels\arteries.exf'
-        cfile = r'C:\Users\egha355\Desktop\work_related\human_vasculature\cmgui\finbar_vessels\arteries_v2_map_names.csv'
-        get_xi_location_of_vessel(zfile, cfile)
-
+        zfile = r'C:\Users\egha355\Desktop\work_related\human_vasculature\cmgui\finbar_vessels\arteries_reversed_some_element_nodes_corrected.exf'
+        cfile = r'C:\Users\egha355\Desktop\work_related\human_vasculature\cmgui\finbar_vessels\arteries_v2_map_names_new.csv'
+        name_map_file = r'C:\Users\egha355\Desktop\work_related\human_vasculature\cmgui\finbar_vessels\arteries_v2_map_names.csv'
+        # get_xi_location_of_vessel(zfile, cfile)
+        # get_children_of_vessel(cfile)
+        get_radius_length_of_segments(zfile, cfile, name_map_file)
 
     # with open(input, 'r') as f, open(output, 'w') as g:
     #     for line in f:

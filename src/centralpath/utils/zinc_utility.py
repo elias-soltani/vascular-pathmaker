@@ -16,7 +16,7 @@ from opencmiss.zinc.node import Node
 from opencmiss.zinc.result import RESULT_OK
 from opencmiss.zinc.element import MeshGroup
 from opencmiss.utils.zinc.general import ChangeManager
-from scaffoldmaker.utils.interpolation import getCubicHermiteArcLength, interpolateCubicHermite
+from scaffoldmaker.utils.interpolation import getCubicHermiteArcLength, interpolateCubicHermite, getCubicHermiteArcLengthToXi
 
 
 
@@ -297,11 +297,12 @@ def get_xi_location_of_vessel(scaffold_file, csv_file):
     # Get element iterator
     mesh = field_module.findMeshByDimension(1)
 
-    dxi = 1.0  # mm
+    dxi = 0.1  # mm
     elem_node_list_with_inverse_node_order = []
     node_reverse_derivative_list = []
     for group in groups:
         if group == 'Ascending aorta':
+            print('Ascending aorta,')
             continue
         child_name = group
         parent_name = new_to_old[data[group][5]]
@@ -361,6 +362,7 @@ def get_xi_location_of_vessel(scaffold_file, csv_file):
             # point cloud
             for i in range(int(arcLength // dxi)):
                 xv.append(interpolateCubicHermite(v1, d1, v2, d2, i * dxi / arcLength))
+            xv.append(interpolateCubicHermite(v1, d1, v2, d2, 0.9999))
 
             dist1, idx1 = find_closest_point_to_vessel(chv1, xv)
             dist2, idx2 = find_closest_point_to_vessel(chv2, xv)
@@ -372,7 +374,8 @@ def get_xi_location_of_vessel(scaffold_file, csv_file):
                 xi = idx2 * dxi / arcLength
             else:
                 xi = idx1 * dxi / arcLength
-            # print(child_name, parent_name, xi, idx1, idx2, dist1, dist2)
+            # print(f'{child_name},{parent_name},{xi}')
+            print(f'{child_name},{parent_name},{arcLength}')
             # import matplotlib.pyplot as plt
             # ax = plt.figure().add_subplot(projection='3d')
             # xv=np.array(xv)
@@ -385,10 +388,345 @@ def get_xi_location_of_vessel(scaffold_file, csv_file):
                 print('Warning: More than one element per group')
     # for c in elem_node_list_with_inverse_node_order:
     #     print(f'{c[0]}, {c[1]}, {c[2]}')
-    elem_list = [int(c[1]) for c in elem_node_list_with_inverse_node_order]
-    node_reverse_derivative_list.sort()
-    elem_list.sort()
-    output_correct_order_of_nodes(scaffold_file, elem_list, node_reverse_derivative_list)
+    # elem_list = [int(c[1]) for c in elem_node_list_with_inverse_node_order]
+    # node_reverse_derivative_list.sort()
+    # elem_list.sort()
+    # output_correct_order_of_nodes(scaffold_file, elem_list, node_reverse_derivative_list)
+
+
+def get_children_of_vessel(cfile):
+    """
+    Gets the children of the vessels in the csv file. loops over the lines and for each parent adds the artery
+     to the list of children.
+    :param cfile:
+    :return: list of children with their respective xi locations on the parent.
+    """
+    with open(cfile, 'r') as f:
+        lines = f.readlines()
+        children = {}
+        xi_locations = {}
+        arc_lengths = {}
+        for line in lines:
+            if line.startswith('old name,name'):
+                continue
+            else:
+                line = line.strip().split(',')
+                arc_lengths[line[1]] = float(line[2])
+                if not line[6]:
+                    continue
+                if line[6] not in children:
+                    children[line[6]] = [line[1]]
+                    xi_locations[line[6]] = [line[9]]
+                else:
+                    children[line[6]].append(line[1])
+                    xi_locations[line[6]].append(line[9])
+    # sort the children based on their xi location
+    for k, v in children.items():
+        xi = xi_locations[k]
+        children[k] = [x for _, x in sorted(zip(xi, v))]
+        xi_locations[k] = sorted(xi)
+    with open(cfile, 'r') as f, open(cfile.replace('.csv', '_new.csv'), 'w') as g:
+        for line in f:
+            line_s = line.strip().split(',')
+            parent = line_s[6]
+            artery = line_s[1]
+            if line_s[0] == 'old name':
+                continue
+            if artery not in children:
+                # idx_order = children[parent].index(artery)
+                g.write(f'{artery}, {get_parent_name(parent, children[parent], xi_locations[parent], arc_lengths[parent], artery)}, None, {artery}, 0.0, 1.0\n')
+                continue
+            else:
+                n = len(children[artery])
+                # idx_order = children[parent].index(artery)
+                if float(xi_locations[artery][0])*arc_lengths[artery] <= 5.0:
+                    print(artery, 'trifurcation')
+                chidx = 0
+                segment = 1
+                artery_name = artery
+                if parent == '':
+                    parent_name = 'Heart'
+                else:
+                    parent_name = get_parent_name(parent, children[parent], xi_locations[parent], arc_lengths[parent], artery)
+                new_chidx = get_index_of_first_different_xi(xi_locations[artery], chidx+1, arc_lengths[artery])
+                children_names = ' '.join([get_child_updated_name(children, xi_locations, c, arc_lengths[artery]) for c in children[artery][chidx:new_chidx]])
+                if (1-float(xi_locations[artery][chidx]))*arc_lengths[artery] > 5.0:
+                    children_names = get_splitted_name(artery, segment+1) + ' ' + children_names
+                    artery_name = get_splitted_name(artery, segment)
+                g.write(f'{artery_name}, {parent_name}, {children_names}, {artery}, 0.0, {xi_locations[artery][chidx]}\n')
+                chidx = new_chidx
+                while chidx < n:
+                    segment += 1
+                    artery_name = get_splitted_name(artery, segment)
+                    parent_name = get_splitted_name(artery, segment - 1)
+                    new_chidx = get_index_of_first_different_xi(xi_locations[artery], chidx+1, arc_lengths[artery])
+                    children_names = ' '.join([get_child_updated_name(children, xi_locations, c, arc_lengths[artery]) for c in children[artery][chidx:new_chidx]])
+                    if (1-float(xi_locations[artery][chidx]))*arc_lengths[artery] > 5.0:
+                        children_names = get_splitted_name(artery, segment+1) + ' ' + children_names
+                    g.write(f'{artery_name}, {parent_name}, {children_names}, {artery}, {xi_locations[artery][chidx-1]}, {xi_locations[artery][chidx]}\n')
+                    chidx = new_chidx
+                if (1-float(xi_locations[artery][chidx-1]))*arc_lengths[artery] > 5.0:
+                    artery_name = get_splitted_name(artery, segment+1)
+                    parent_name = get_splitted_name(artery, segment)
+                    g.write(f'{artery_name}, {parent_name}, None, {artery}, {xi_locations[artery][chidx-1]}, 1.0\n')
+
+
+def get_radius_length_of_segments(zfile, cfile, name_map_file):
+    """
+    Get the radius and length of the segments.
+    :param zfile:
+    :param cfile:
+    :param name_map_file:
+    :return:
+    """
+    context = Context('segment radius length')
+    region = context.getDefaultRegion()
+    result = region.readFile(zfile)
+
+    assert result == RESULT_OK, "Failed to load model file" + str(zfile)
+    field_module = region.getFieldmodule()
+
+    with open(cfile, 'r') as f:
+        data = f.readlines()
+
+    with open(name_map_file, 'r') as f:
+        lines = f.readlines()
+
+    new_to_old = {}
+    groups = []
+    # data = {}
+    for line in lines:
+        if 'name,name' in line:
+            continue
+        line = line.split(',')
+        new_to_old[line[1]] = line[0]
+        groups.append(line[0])
+        # data[line[0]] = line[1:]
+
+    artery_whole = {}
+    xi_ends = {}
+    name_segments = []
+    for line in data:
+        line = line.split(',')
+        artery_whole[line[0]] = line[3].strip()
+        xi_ends[line[0]] = [float(line[4]), float(line[5])]
+        name_segments.append(line[0])
+
+    cache = field_module.createFieldcache()
+    coordinates = field_module.findFieldByName('coordinates').castFiniteElement()
+    radius_field = field_module.findFieldByName('radius').castFiniteElement()
+    # Get element iterator
+    mesh = field_module.findMeshByDimension(1)
+
+    for segment in name_segments:
+        artery = artery_whole[segment]
+        xi_start = xi_ends[segment][0]
+        xi_end = xi_ends[segment][1]
+        group = '"' + new_to_old[artery] + '"'  # add quotes to match the group name
+        field_group = field_module.findFieldByName(group).castGroup()
+        element_group = field_group.getFieldElementGroup(mesh)
+        if element_group.isValid():
+            mesh_group = element_group.getMeshGroup()
+        else:
+            print('extractPathParametersFromRegion: missing group "' + group + '"')
+        elemiter = mesh_group.createElementiterator()
+        element = elemiter.next()
+        while element.isValid():
+            # for each element use Gaussian quadrature to calculate the arc length
+            eft = element.getElementfieldtemplate(coordinates, 3)
+            node1 = element.getNode(eft, 1)
+            node2 = element.getNode(eft, 2)
+            cache.setNode(node1)
+            result, r1 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
+            result, v1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            cache.setNode(node2)
+            result, r2 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
+            result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            length = getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi_end) - getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi_start)
+            radius1 = (1-xi_start)*r1 + xi_start*r2
+            radius2 = (1-xi_end)*r1 + xi_end*r2
+            print(f'{segment},{length:.3f},{radius1:.3f},{radius2:.3f}')
+            element = elemiter.next()
+            if element.isValid():
+                print('Warning: More than one element per group')
+
+    # for group in groups:
+    #     # if group == 'Ascending aorta':
+    #     #     print('Ascending aorta,')
+    #     #     continue
+    #     # child_name = group
+    #     # parent_name = new_to_old[data[group][5]]
+    #     group = '"' + group + '"'  # add quotes to match the group name
+    #     field_group = field_module.findFieldByName(group).castGroup()
+    #     element_group = field_group.getFieldElementGroup(mesh)
+    #     if element_group.isValid():
+    #         mesh_group = element_group.getMeshGroup()
+    #     else:
+    #         print('extractPathParametersFromRegion: missing group "' + group + '"')
+    #     elemiter = mesh_group.createElementiterator()
+    #     element = elemiter.next()
+
+        # field_group2 = field_module.findFieldByName('"' + parent_name + '"').castGroup()
+        # element_group2 = field_group2.getFieldElementGroup(mesh)
+        # if element_group2.isValid():
+        #     mesh_group2 = element_group2.getMeshGroup()
+        # else:
+        #     print('extractPathParametersFromRegion: missing group "' + parent_name + '"')
+        # elemiter2 = mesh_group2.createElementiterator()
+        # element2 = elemiter2.next()
+        # while element.isValid():
+        #     # xv = []
+        #     # for each element use Gaussian quadrature to calculate the arc length
+        #     eft = element.getElementfieldtemplate(coordinates, 3)
+        #     node1 = element.getNode(eft, 1)
+        #     node2 = element.getNode(eft, 2)
+        #     cache.setNode(node1)
+        #     result, r1 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
+        #     result, v1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        #     result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        #     cache.setNode(node2)
+        #     result, r2 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
+        #     result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+        #     result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+        #     getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi)
+            # chv1 = v1
+            # chv2 = v2
+            # ch1id = node1.getIdentifier()
+            # ch2id = node2.getIdentifier()
+
+            # get node parameters of the parent vessel
+            # xv = []
+            # # for each element use Gaussian quadrature to calculate the arc length
+            # eft = element2.getElementfieldtemplate(coordinates, 3)
+            # node1 = element2.getNode(eft, 1)
+            # node2 = element2.getNode(eft, 2)
+            # cache.setNode(node1)
+            # result, r1 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
+            # result, v1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            # result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            # cache.setNode(node2)
+            # result, r2 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
+            # result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
+            # result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
+            # arcLength = getCubicHermiteArcLength(v1, d1, v2, d2)
+
+            # point cloud
+            # for i in range(int(arcLength // dxi)):
+            #     xv.append(interpolateCubicHermite(v1, d1, v2, d2, i * dxi / arcLength))
+            # xv.append(interpolateCubicHermite(v1, d1, v2, d2, 0.9999))
+
+            # dist1, idx1 = find_closest_point_to_vessel(chv1, xv)
+            # dist2, idx2 = find_closest_point_to_vessel(chv2, xv)
+            # if dist1 > dist2:
+            #     # print("dist1 > dist2")
+            #     node_reverse_derivative_list.append(ch1id)
+            #     node_reverse_derivative_list.append(ch2id)
+            #     elem_node_list_with_inverse_node_order.append(
+            #         [child_name, str(element.getIdentifier()), str(element2.getIdentifier())])
+            #     xi = idx2 * dxi / arcLength
+            # else:
+            #     xi = idx1 * dxi / arcLength
+            # print(f'{child_name},{parent_name},{xi}')
+            # print(f'{child_name},{parent_name},{arcLength}')
+            # import matplotlib.pyplot as plt
+            # ax = plt.figure().add_subplot(projection='3d')
+            # xv=np.array(xv)
+            # ax.plot(xv[:, 0], xv[:, 1], xv[:, 2], 'o')
+            # plt.show()
+            # points[group] = xv
+
+            # element = elemiter.next()
+            # if element.isValid():
+            #     print('Warning: More than one element per group')
+
+def get_parent_name(parent, parent_children, parent_xi, parent_length, artery):
+    """
+    Get the segmented parent name of the artery. If the parent is not segmented, then return the parent name.
+    :param parent: parent original name
+    :param parent_children:
+    :param parent_xi:
+    :param parent_length:
+    :param artery: artery name
+    :return:
+    """
+    if (1-float(parent_xi[0]))*parent_length < 5.0:
+        return parent
+    else:
+        return get_splitted_name(parent, get_vessel_segment_number_on_parent(parent_children, artery, parent_xi, parent_length))
+
+
+def get_index_of_first_different_xi(xi, idx, arc_length):
+    """
+    Get the index of the first xi value that is different from the previous one. i.e. xi[j] - xi[i] >= 0.05
+    :param xi: list of xi values.
+    :param idx: index of current artery segment.
+    :param arc_length: arc length of the current artery segment.
+    :return:
+    """
+    j = idx
+    while j < len(xi) and (float(xi[j]) - float(xi[idx-1]))*arc_length <= 5.0:
+        j += 1
+    return j
+
+
+def get_vessel_segment_number_on_parent(parent_children, name,  parent_xi, parent_length):
+    """
+    Get the vessel segment number on the parent.
+    :param parent_children:
+    :param name:
+    :param parent_xi:
+    :param parent_length:
+    :return:
+    """
+    idx_order = parent_children.index(name)
+    if idx_order == 0:
+        return 1
+    i, j = 1, 1
+    while i <= idx_order:
+        if (float(parent_xi[i]) - float(parent_xi[i-1]))*parent_length >= 5.0:
+            j += 1
+        i += 1
+    return j
+
+
+def get_splitted_name(name, i):
+    """
+    :param name: name of the vessel
+    :param i: index of the vessel
+    :return: name of the vessel with the index appended to the end
+    """
+    if name.endswith('_L'):
+        return name[:-2] + '_' + str(i) + '_L'
+    elif name.endswith('_R'):
+        return name[:-2] + '_' + str(i) + '_R'
+    else:
+        return name + '_' + str(i)
+
+
+def get_child_updated_name(children, xi_locations, name, arc_length):
+    """
+    return child name with the correct index. If the child has at least one child and the child is not at xi>=0.97 then
+    returns get_splitted_name(child, 1)
+    :param children:
+    :param xi_locations:
+    :param name:
+    :param i:
+    :return:
+    """
+    if name not in children:
+        return name
+    n = len(children[name])
+    if n == 0:
+        return name
+    # elif n > 1:
+    #     return get_splitted_name(name, 1)
+    else:
+        if (1-float(xi_locations[name][0]))*arc_length <= 5.0:
+            return name
+        else:
+            return get_splitted_name(name, 1)
 
 
 def output_correct_order_of_nodes(scaffold_file, elem_list, node_reverse_derivative_list):
