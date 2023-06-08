@@ -17,7 +17,7 @@ from opencmiss.zinc.result import RESULT_OK
 from opencmiss.zinc.element import MeshGroup
 from opencmiss.utils.zinc.general import ChangeManager
 from scaffoldmaker.utils.interpolation import getCubicHermiteArcLength, interpolateCubicHermite, getCubicHermiteArcLengthToXi
-
+from opencmiss.utils.zinc.finiteelement import getMaximumNodeIdentifier, getMaximumElementIdentifier
 
 
 def mirror_zinc_file(zinc_file, plane):
@@ -552,94 +552,6 @@ def get_radius_length_of_segments(zfile, cfile, name_map_file):
             if element.isValid():
                 print('Warning: More than one element per group')
 
-    # for group in groups:
-    #     # if group == 'Ascending aorta':
-    #     #     print('Ascending aorta,')
-    #     #     continue
-    #     # child_name = group
-    #     # parent_name = new_to_old[data[group][5]]
-    #     group = '"' + group + '"'  # add quotes to match the group name
-    #     field_group = field_module.findFieldByName(group).castGroup()
-    #     element_group = field_group.getFieldElementGroup(mesh)
-    #     if element_group.isValid():
-    #         mesh_group = element_group.getMeshGroup()
-    #     else:
-    #         print('extractPathParametersFromRegion: missing group "' + group + '"')
-    #     elemiter = mesh_group.createElementiterator()
-    #     element = elemiter.next()
-
-        # field_group2 = field_module.findFieldByName('"' + parent_name + '"').castGroup()
-        # element_group2 = field_group2.getFieldElementGroup(mesh)
-        # if element_group2.isValid():
-        #     mesh_group2 = element_group2.getMeshGroup()
-        # else:
-        #     print('extractPathParametersFromRegion: missing group "' + parent_name + '"')
-        # elemiter2 = mesh_group2.createElementiterator()
-        # element2 = elemiter2.next()
-        # while element.isValid():
-        #     # xv = []
-        #     # for each element use Gaussian quadrature to calculate the arc length
-        #     eft = element.getElementfieldtemplate(coordinates, 3)
-        #     node1 = element.getNode(eft, 1)
-        #     node2 = element.getNode(eft, 2)
-        #     cache.setNode(node1)
-        #     result, r1 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
-        #     result, v1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-        #     result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-        #     cache.setNode(node2)
-        #     result, r2 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
-        #     result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-        #     result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-        #     getCubicHermiteArcLengthToXi(v1, d1, v2, d2, xi)
-            # chv1 = v1
-            # chv2 = v2
-            # ch1id = node1.getIdentifier()
-            # ch2id = node2.getIdentifier()
-
-            # get node parameters of the parent vessel
-            # xv = []
-            # # for each element use Gaussian quadrature to calculate the arc length
-            # eft = element2.getElementfieldtemplate(coordinates, 3)
-            # node1 = element2.getNode(eft, 1)
-            # node2 = element2.getNode(eft, 2)
-            # cache.setNode(node1)
-            # result, r1 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
-            # result, v1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-            # result, d1 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-            # cache.setNode(node2)
-            # result, r2 = radius_field.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 1)
-            # result, v2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_VALUE, 1, 3)
-            # result, d2 = coordinates.getNodeParameters(cache, -1, Node.VALUE_LABEL_D_DS1, 1, 3)
-            # arcLength = getCubicHermiteArcLength(v1, d1, v2, d2)
-
-            # point cloud
-            # for i in range(int(arcLength // dxi)):
-            #     xv.append(interpolateCubicHermite(v1, d1, v2, d2, i * dxi / arcLength))
-            # xv.append(interpolateCubicHermite(v1, d1, v2, d2, 0.9999))
-
-            # dist1, idx1 = find_closest_point_to_vessel(chv1, xv)
-            # dist2, idx2 = find_closest_point_to_vessel(chv2, xv)
-            # if dist1 > dist2:
-            #     # print("dist1 > dist2")
-            #     node_reverse_derivative_list.append(ch1id)
-            #     node_reverse_derivative_list.append(ch2id)
-            #     elem_node_list_with_inverse_node_order.append(
-            #         [child_name, str(element.getIdentifier()), str(element2.getIdentifier())])
-            #     xi = idx2 * dxi / arcLength
-            # else:
-            #     xi = idx1 * dxi / arcLength
-            # print(f'{child_name},{parent_name},{xi}')
-            # print(f'{child_name},{parent_name},{arcLength}')
-            # import matplotlib.pyplot as plt
-            # ax = plt.figure().add_subplot(projection='3d')
-            # xv=np.array(xv)
-            # ax.plot(xv[:, 0], xv[:, 1], xv[:, 2], 'o')
-            # plt.show()
-            # points[group] = xv
-
-            # element = elemiter.next()
-            # if element.isValid():
-            #     print('Warning: More than one element per group')
 
 def get_parent_name(parent, parent_children, parent_xi, parent_length, artery):
     """
@@ -785,3 +697,142 @@ def output_correct_order_of_nodes(scaffold_file, elem_list, node_reverse_derivat
     # get xi location of the first node of the vessel
     # find the
 
+
+def get_terminals(cfile):
+    """
+    Get the terminals of the vessels. Read the cfile and if the vessel output is None, then make a terminal.
+    :param cfile:
+    :return:
+    """
+    with open(cfile, 'r') as f:
+        lines = f.readlines()
+
+    for line in lines:
+        if line.startswith('artery segment'):
+            continue
+        line = line.strip().split(',')
+        children = line[2].strip().split(' ')
+        if children[0] == 'None':
+            print(f'{line[0]}_T,,,,,,,,,terminal, pp')
+        # else:
+        # if len(children) > 1:
+        #     print('split_junction, pv')
+        # else:
+        #     print('arterial, pv')
+
+
+def get_maximum_number(zincfile):
+    """
+    Get the maximum number of nodes, lines, faces and elements identifiers of the zinc file.
+    :param zincfile:
+    :return: maximum node, line, face and element identifiers
+    """
+    context = Context("maximum_number")
+    region = context.getDefaultRegion()
+    region.readFile(zincfile)
+    fieldmodule = region.getFieldmodule()
+    nodes = fieldmodule.findNodesetByFieldDomainType(Field.DOMAIN_TYPE_NODES)
+    mesh1d = fieldmodule.findMeshByDimension(1)
+    mesh2d = fieldmodule.findMeshByDimension(2)
+    mesh3d = fieldmodule.findMeshByDimension(3)
+    nodeIdentifier = max(1, getMaximumNodeIdentifier(nodes))
+    lineIdentifier = max(1, getMaximumElementIdentifier(mesh1d))
+    faceIdentifier = max(1, getMaximumElementIdentifier(mesh2d))
+    elementIdentifier = max(1, getMaximumElementIdentifier(mesh3d))
+
+    return [nodeIdentifier, lineIdentifier, faceIdentifier, elementIdentifier]
+
+
+def get_coordinates_name(zincfile):
+    """
+    Get the coordinates field name of the zinc file.
+    :param zincfile:
+    :return: coordinates field name
+    """
+    context = Context("coordinates_name")
+    region = context.getDefaultRegion()
+    region.readFile(zincfile)
+    fieldmodule = region.getFieldmodule()
+    if fieldmodule.findFieldByName('coordinates').isValid():
+        return 'coordinates'
+    elif fieldmodule.findFieldByName('fitted coordinates').isValid():
+        return 'fitted coordinates'
+
+
+def get_zinc_files_in_directory(directory):
+    """
+    Get the zinc files in the directory.
+    :param directory:
+    :return: list of zinc files in the directory
+    """
+    zinc_files = []
+    for file in os.listdir(directory):
+        if file.endswith(".exf"):
+            zinc_files.append(os.path.join(directory, file))
+    return zinc_files
+
+
+def find_files_with_coordinates_name_coordinates(directory):
+    """
+    Find the files that have coordinates field name as coordinates.
+    :param directory:
+    :return: list of zinc files that have coordinates field name as coordinates
+    """
+    zinc_files = get_zinc_files_in_directory(directory)
+    zinc_files_with_coordinates_name_coordinates = []
+    for zinc_file in zinc_files:
+        if get_coordinates_name(zinc_file) == 'coordinates':
+            zinc_files_with_coordinates_name_coordinates.append(os.path.basename(zinc_file))
+    return zinc_files_with_coordinates_name_coordinates
+
+
+def combine_files(directory):
+    """
+    Combine the files in the directory into one file.
+    :param directory:
+    :param output_file:
+    :return:
+    """
+    context = Context("combine_files")
+    region = context.getDefaultRegion()
+    zinc_files = get_zinc_files_in_directory(directory)
+    for zinc_file in zinc_files:
+        region.readFile(zinc_file)
+    region.writeFile(os.path.join(directory, 'zinc.combined'))
+
+
+def generate_cmgui_commands_to_write_combined_file(directory):
+    """
+    Generate cmgui commands to write the combined file.
+    :param directory:
+    :return: cmgui command file to write the combined file
+    """
+    zinc_files = get_zinc_files_in_directory(directory)
+    output = os.path.join(directory, 'zinc_commands.combined')
+    identifiers = np.array([0, 0, 0, 0])
+    with open(output, 'w') as g:
+        for zinc_file in zinc_files:
+            g.write(f'gfx read elements {zinc_file} node_offset {identifiers[0]} line_offset {identifiers[1]}'+
+                    f' face_offset {identifiers[2]} element_offset {identifiers[3]}' + '\n')
+            identifiers += np.array(get_maximum_number(zinc_file))
+        g.write('gfx write elem node combined.ex' '\n')
+
+
+{
+    "BoundaryMode": "BOUNDARY",
+    "CoordinateField": "fitted coordinates",
+    "ElementFaceType": "ALL",
+    "FieldDomainType": "MESH2D",
+    "Material": "bone",
+    "RenderLineWidth": 1,
+    "RenderPointSize": 1,
+    "RenderPolygonMode": "SHADED",
+    "Scenecoordinatesystem": "LOCAL",
+    "SelectMode": "ON",
+    "SelectedMaterial": "default_selected",
+    "SubgroupField": "tibia_left",
+    "Surfaces": {},
+    "Tessellation": "default",
+    "Type": "SURFACES",
+    "VisibilityFlag": true
+}
