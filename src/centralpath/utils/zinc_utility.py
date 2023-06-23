@@ -30,7 +30,13 @@ def mirror_zinc_file(zinc_file, plane):
     """
     dirname = os.path.dirname(zinc_file)
     basename = os.path.basename(zinc_file)
-    output_zinc_mirrored = os.path.join(dirname+r'\output', basename.split('_right')[0]+'_left.exf')
+    if 'right' in basename:
+        output_zinc_mirrored = os.path.join(dirname+r'\output', basename.split('right')[0]+'left.'+basename.split('.')[1])
+    elif 'left' in basename:
+        output_zinc_mirrored = os.path.join(dirname + r'\output', basename.split('left')[0] + 'right.'+basename.split('.')[1])
+    else:
+        print(f'Warning: {basename} might be in the middle and mirroring it might not be the right thing to do.')
+        output_zinc_mirrored = os.path.join(dirname + r'\output', basename + '_mirrored')
 
     element_started = False
     counter = -100
@@ -52,7 +58,7 @@ def mirror_zinc_file(zinc_file, plane):
                 if counter == 1:  # Todo modify this for general plane.
                     line = line.strip().split()
                     line = [str(-float(c)) for c in line]
-                    line = ' '.join(line)
+                    line = ' '.join(line)+'\n'
                     counter = -100
             g.write(line)
 
@@ -816,23 +822,3 @@ def generate_cmgui_commands_to_write_combined_file(directory):
                     f' face_offset {identifiers[2]} element_offset {identifiers[3]}' + '\n')
             identifiers += np.array(get_maximum_number(zinc_file))
         g.write('gfx write elem node combined.ex' '\n')
-
-
-{
-    "BoundaryMode": "BOUNDARY",
-    "CoordinateField": "fitted coordinates",
-    "ElementFaceType": "ALL",
-    "FieldDomainType": "MESH2D",
-    "Material": "bone",
-    "RenderLineWidth": 1,
-    "RenderPointSize": 1,
-    "RenderPolygonMode": "SHADED",
-    "Scenecoordinatesystem": "LOCAL",
-    "SelectMode": "ON",
-    "SelectedMaterial": "default_selected",
-    "SubgroupField": "tibia_left",
-    "Surfaces": {},
-    "Tessellation": "default",
-    "Type": "SURFACES",
-    "VisibilityFlag": true
-}

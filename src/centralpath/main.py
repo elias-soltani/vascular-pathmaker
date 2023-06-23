@@ -90,7 +90,7 @@ if __name__ == "__main__":
     example_10 = True
     if example_10:
         directory = r'C:\Users\egha355\Desktop\work_related\human_vasculature\cmgui'
-        workdir = os.path.join(directory, 'combine_organs')
+        workdir = os.path.join(directory, 'bones')
         values = get_maximum_number(r'C:\Users\egha355\Desktop\work_related\human_vasculature\cmgui\combine_organs\gracilis_muscle_left.exf')
         print(values)
         print(find_files_with_coordinates_name_coordinates(workdir))
